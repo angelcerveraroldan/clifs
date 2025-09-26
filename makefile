@@ -3,14 +3,11 @@ conf:
 	cmake -S . -B build -G Ninja
 
 # Compile
-build:
-	cmake --build build
-
-# Compile
-all: build
+build: conf
+	cmake --build build --target clifs --verbose
 
 # Configure, compile, and run
-run: all
+run: build
 	./build/clifs
 
 # Clean build

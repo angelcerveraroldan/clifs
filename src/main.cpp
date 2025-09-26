@@ -1,6 +1,10 @@
+#include <cerrno>
 #include <iostream>
 
+#define FUSE_USE_VERSION 31
+#include <fuse3/fuse.h>
+
 int main() {
-  // C++ hello world
-  std::cout << "Hello world" << std::endl;
+  // Hello!
+  std::cout << "Hello!" << std::endl;
 }
