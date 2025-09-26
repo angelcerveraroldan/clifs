@@ -16,6 +16,8 @@ endif()
 
 add_executable(clifs src/main.cpp)
 
-target_include_directories(clifs PRIVATE ${FUSE3_INCLUDE_DIRS})
+target_include_directories(clifs PRIVATE 
+	${FUSE3_INCLUDE_DIRS}
+	${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(clifs PRIVATE ${FUSE3_LINK_LIBRARIES})
 target_compile_options(clifs PRIVATE ${FUSE3_CFLAGS_OTHER})

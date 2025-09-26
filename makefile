@@ -1,6 +1,6 @@
 # Configure
 conf:
-	cmake -S . -B build -G Ninja
+	cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 # Compile
 build: conf
@@ -13,3 +13,4 @@ run: build
 # Clean build
 clean:
 	rm -rf build
+
