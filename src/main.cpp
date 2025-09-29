@@ -35,13 +35,42 @@ static int cf_getatt(const char *path, struct stat *st,
     return 0;
   }
 
+  if (strcmp(path, "/hello") == 0) {
+    static char message[] = "hello there!";
+    st->st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;
+    st->st_nlink = 1;
+    // User id and group id
+    st->st_uid = getuid();
+    st->st_gid = getgid();
+    st->st_size = sizeof(message) - 1;
+    return 0;
+  }
+
   return -ENOENT;
+}
+
+static int cf_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
+                      off_t, struct fuse_file_info *, enum fuse_readdir_flags) {
+  if (strcmp(path, "/") != 0)
+    return -ENOENT;
+
+  fuse_fill_dir_flags EMPTY = (fuse_fill_dir_flags)0;
+
+  // self and parent
+  filler(buffer, ".", NULL, 0, EMPTY);
+  filler(buffer, "..", NULL, 0, EMPTY);
+
+  // Test file for now
+  filler(buffer, "hello", NULL, 0, EMPTY);
+
+  return 0;
 }
 
 static fuse_operations clifs_fuse_operations() {
   fuse_operations ops{};
 
   ops.getattr = cf_getatt;
+  ops.readdir = cf_readdir;
 
   return ops;
 }
@@ -59,11 +88,10 @@ int main(int argc, char *argv[]) {
   }
 
   auto mnt_pt = argv[1];
-
   CFS_DATA data = CFS_DATA(mnt_pt);
   fuse_operations ops = clifs_fuse_operations();
-  // TODO: private data missing for now
+
   fuse_main(argc, argv, &ops, &data);
-  std::cout << "Finished" << std::endl;
+
   return 0;
 }
