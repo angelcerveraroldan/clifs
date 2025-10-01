@@ -1,5 +1,6 @@
-#include "clifs_data.h"
+#include "clifs_tree.h"
 #include "params.h"
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
@@ -11,9 +12,8 @@
 
 #include <fuse3/fuse.h>
 
-CFS_DATA *context_data() {
-  void *private_data = fuse_get_context()->private_data;
-  return static_cast<CFS_DATA *>(private_data);
+static CFS_TREE *ctx_tree() {
+  return static_cast<CFS_TREE *>(fuse_get_context()->private_data);
 }
 
 // Get file attributes
@@ -22,37 +22,21 @@ CFS_DATA *context_data() {
 static int cf_getatt(const char *path, struct stat *st,
                      [[maybe_unused]] struct fuse_file_info *fi) {
   std::memset(st, 0, sizeof(*st));
-
-  if (strcmp(path, "/") == 0) {
-    st->st_mode =
-        S_IFDIR | S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
-    st->st_nlink = 2;
-
-    // User id and group id
-    st->st_uid = getuid();
-    st->st_gid = getgid();
-
+  if (auto *node = ctx_tree()->find(path)) {
+    node->to_stat(*st);
     return 0;
   }
-
-  if (strcmp(path, "/hello") == 0) {
-    static char message[] = "hello there!";
-    st->st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;
-    st->st_nlink = 1;
-    // User id and group id
-    st->st_uid = getuid();
-    st->st_gid = getgid();
-    st->st_size = sizeof(message) - 1;
-    return 0;
-  }
-
   return -ENOENT;
 }
 
 static int cf_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
                       off_t, struct fuse_file_info *, enum fuse_readdir_flags) {
-  if (strcmp(path, "/") != 0)
+  auto *node = ctx_tree()->find(path);
+
+  // Path does not exist
+  if (node == nullptr) {
     return -ENOENT;
+  }
 
   fuse_fill_dir_flags EMPTY = (fuse_fill_dir_flags)0;
 
@@ -60,9 +44,42 @@ static int cf_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
   filler(buffer, ".", NULL, 0, EMPTY);
   filler(buffer, "..", NULL, 0, EMPTY);
 
-  // Test file for now
-  filler(buffer, "hello", NULL, 0, EMPTY);
+  // Children
+  for (const auto &name : node->children_names()) {
+    filler(buffer, name.c_str(), NULL, 0, EMPTY);
+  }
 
+  return 0;
+}
+
+static int cf_mkdir(const char *path, mode_t mode) {
+  auto components = split_name(path);
+  if (components.empty())
+    return -EINVAL;
+
+  std::string parent_path = parent(path);
+  std::string new_dir_name = components.back();
+
+  CFS_TREE *tree = ctx_tree();
+  CFS_NODE *parent = tree->find(parent_path);
+
+  // Parent does not exist
+  if (!parent)
+    return -ENOENT;
+  // Cannot build inside a file
+  if (parent->is_file())
+    return -ENOTDIR;
+  // Directory already exists
+  if (parent->find_child(new_dir_name))
+    return -EEXIST;
+
+  CFS_NODE *new_node = parent->mkdir(
+      new_dir_name, mode, fuse_get_context()->uid, fuse_get_context()->gid);
+  // Error making the new dir
+  if (!new_node)
+    return -EIO;
+
+  // All went well!
   return 0;
 }
 
@@ -71,6 +88,7 @@ static fuse_operations clifs_fuse_operations() {
 
   ops.getattr = cf_getatt;
   ops.readdir = cf_readdir;
+  ops.mkdir = cf_mkdir;
 
   return ops;
 }
@@ -82,16 +100,8 @@ void help_message() {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    help_message();
-    return 1;
-  }
-
-  auto mnt_pt = argv[1];
-  CFS_DATA data = CFS_DATA(mnt_pt);
+  CFS_TREE data;
   fuse_operations ops = clifs_fuse_operations();
-
   fuse_main(argc, argv, &ops, &data);
-
   return 0;
 }

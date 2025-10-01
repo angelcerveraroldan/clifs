@@ -14,7 +14,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
-add_executable(clifs src/main.cpp src/clifs_data.cpp)
+add_executable(clifs src/main.cpp src/clifs_tree.cpp)
 
 target_include_directories(clifs PRIVATE 
 	${FUSE3_INCLUDE_DIRS}
