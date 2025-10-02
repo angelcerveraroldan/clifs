@@ -33,6 +33,14 @@ class CFS_NODE {
 public:
   CFS_NODE(CFS_NODE *, Metadata, NODE_KIND, std::string);
 
+  // We cannot copy because of the unique pointer
+  CFS_NODE(const CFS_NODE &) = delete;
+  CFS_NODE &operator=(const CFS_NODE &) = delete;
+
+  // Moving is fine, but we must move all of the unique_ptrs
+  CFS_NODE(CFS_NODE &&) noexcept = default;
+  CFS_NODE &operator=(CFS_NODE &&) noexcept = default;
+
   static std::unique_ptr<CFS_NODE> make_dir(CFS_NODE *, name_t, mode_t, uid_t,
                                             gid_t);
   static std::unique_ptr<CFS_NODE> make_file(CFS_NODE *, name_t, mode_t, uid_t,
