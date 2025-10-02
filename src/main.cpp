@@ -57,11 +57,11 @@ static int cf_mkdir(const char *path, mode_t mode) {
   if (components.empty())
     return -EINVAL;
 
-  std::string parent_path = parent_path(path);
+  std::string pp = parent_path(path);
   std::string new_dir_name = components.back();
 
   CFS_TREE *tree = ctx_tree();
-  CFS_NODE *parent = tree->find(parent_path);
+  CFS_NODE *parent = tree->find(pp);
 
   // Parent does not exist
   if (!parent)

@@ -81,7 +81,7 @@ public:
    * */
 
   // Add to the nlink
-  void nlink_add(int by);
+  void nlink_add(int by) { meta.nlink += by; }
 
 private:
   NODE_KIND kind;
