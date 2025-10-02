@@ -44,7 +44,9 @@ public:
   Metadata &metadata() noexcept { return meta; }
 
   // Add a new file or directory (add a generic child)
-  CFS_NODE *add_child(std::unique_ptr<CFS_NODE>);
+  //
+  // If the child adopted is a dir, this will increase nlink
+  CFS_NODE *adopt_child(std::unique_ptr<CFS_NODE>);
 
   // Make a new subdirectory
   CFS_NODE *mkdir(name_t, mode_t mode, uid_t, gid_t);
@@ -64,7 +66,7 @@ public:
   int rename(name_t);
 
   // move the unique pointer to this node.
-  std::unique_ptr<CFS_NODE> erase();
+  std::unique_ptr<CFS_NODE> detach_from_parent();
 
   /*
    * Modifies for Metadata
@@ -127,11 +129,11 @@ private:
  * */
 
 // Give some absolute path, get the parent path
-std::string parent(path_t);
+std::string parent_path(path_t);
 
 // Given some path, divide it into its segments
 //
 // I.e. /this/that/hello.txt -> {this, that, hello.txt}
-std::vector<std::string> split_name(path_t);
+std::vector<std::string> path_components(path_t);
 
 #endif

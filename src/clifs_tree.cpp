@@ -44,7 +44,7 @@ std::unique_ptr<CFS_NODE> CFS_NODE::make_file(CFS_NODE *parent,
                                     std::move(name));
 }
 
-CFS_NODE *CFS_NODE::add_child(std::unique_ptr<CFS_NODE> child) {
+CFS_NODE *CFS_NODE::adopt_child(std::unique_ptr<CFS_NODE> child) {
   if (child == nullptr)
     return nullptr;
 
@@ -66,26 +66,26 @@ CFS_NODE *CFS_NODE::add_child(std::unique_ptr<CFS_NODE> child) {
     return nullptr;
 
   if (is_dir)
-    this->meta.nlink++;
+    nlink_add(1);
 
   return it->second.get();
 }
 
 CFS_NODE *CFS_NODE::mkdir(std::string name, mode_t mode, uid_t uid, gid_t gid) {
-  return add_child(make_dir(this, name, mode, uid, gid));
+  return adopt_child(make_dir(this, name, mode, uid, gid));
 }
 
 int CFS_NODE::rmdir() {
   if (is_file() || !children.empty())
     return -EINVAL;
 
-  erase();
+  detach_from_parent();
   return 0;
 }
 
 CFS_NODE *CFS_NODE::touch(std::string name, mode_t mode, uid_t uid, gid_t gid,
                           off_t size) {
-  return add_child(make_file(this, name, mode, uid, gid, size));
+  return adopt_child(make_file(this, name, mode, uid, gid, size));
 }
 
 void CFS_NODE::to_stat(struct stat &st) const {
@@ -147,7 +147,7 @@ int CFS_NODE::rename(name_t new_name) {
   return 0;
 }
 
-std::unique_ptr<CFS_NODE> CFS_NODE::erase() {
+std::unique_ptr<CFS_NODE> CFS_NODE::detach_from_parent() {
   if (!parent)
     return nullptr;
 
@@ -157,7 +157,7 @@ std::unique_ptr<CFS_NODE> CFS_NODE::erase() {
   return uptr;
 }
 
-std::vector<std::string> split_name(std::string path) {
+std::vector<std::string> path_components(std::string path) {
   std::vector<std::string> components;
   std::string next;
 
@@ -177,8 +177,8 @@ std::vector<std::string> split_name(std::string path) {
   return components;
 }
 
-std::string parent(std::string path) {
-  auto components = split_name(path);
+std::string parent_path(std::string path) {
+  auto components = path_components(path);
   components.pop_back();
   std::string parent = "/";
   for (auto &comp : components) {
@@ -194,7 +194,7 @@ CFS_TREE::CFS_TREE()
 
 CFS_NODE *CFS_TREE::find(std::string path) {
   CFS_NODE *node = &root_node;
-  std::vector<std::string> components = split_name(path);
+  std::vector<std::string> components = path_components(path);
   for (std::string child : components) {
     CFS_NODE *cnode = node->find_child(child);
 
@@ -208,8 +208,8 @@ CFS_NODE *CFS_TREE::find(std::string path) {
 }
 
 CFS_NODE *CFS_TREE::touch_p(std::string path) {
-  auto components = split_name(path);
-  std::string parent_path = parent(path);
+  auto components = path_components(path);
+  std::string parent_path = parent_path(path);
   std::string file_name = components.back();
   CFS_NODE *parent = mkdir_p(parent_path);
 
@@ -223,7 +223,7 @@ CFS_NODE *CFS_TREE::touch_p(std::string path) {
 
 CFS_NODE *CFS_TREE::mkdir_p(std::string path) {
   CFS_NODE *node = &root_node;
-  auto components = split_name(path);
+  auto components = path_components(path);
   for (auto comp : components) {
     CFS_NODE *cnode = node->find_child(comp);
 
@@ -254,7 +254,7 @@ int CFS_TREE::rename_p(path_t from, path_t to) {
   if (!from_leaf)
     return -EINVAL;
 
-  auto p_from = parent(from), p_to = parent(to);
+  auto p_from = parent_path(from), p_to = parent_path(to);
   auto pfrom_node = find(p_from), pto_node = find(p_to);
 
   // The from nodes needs to be directories
@@ -266,6 +266,6 @@ int CFS_TREE::rename_p(path_t from, path_t to) {
     pfrom_node->nlink_add(-1);
 
   // This should later have some error handling
-  pto_node->add_child(from_leaf->erase());
+  pto_node->adopt_child(from_leaf->detach_from_parent());
   return 0;
 }

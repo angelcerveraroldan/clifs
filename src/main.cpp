@@ -53,11 +53,11 @@ static int cf_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 }
 
 static int cf_mkdir(const char *path, mode_t mode) {
-  auto components = split_name(path);
+  auto components = path_components(path);
   if (components.empty())
     return -EINVAL;
 
-  std::string parent_path = parent(path);
+  std::string parent_path = parent_path(path);
   std::string new_dir_name = components.back();
 
   CFS_TREE *tree = ctx_tree();
