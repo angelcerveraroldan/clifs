@@ -49,6 +49,9 @@ public:
   // Make a new subdirectory
   CFS_NODE *mkdir(name_t, mode_t mode, uid_t, gid_t);
 
+  // Remove an *empty* directory
+  int rmdir();
+
   // Make a new file
   CFS_NODE *touch(name_t name, mode_t mode, uid_t, gid_t, off_t size = 0);
 
@@ -62,6 +65,13 @@ public:
 
   // move the unique pointer to this node.
   std::unique_ptr<CFS_NODE> erase();
+
+  /*
+   * Modifies for Metadata
+   * */
+
+  // Add to the nlink
+  void nlink_add(int by);
 
 private:
   NODE_KIND kind;
@@ -100,6 +110,9 @@ public:
   // - Directory already exists
   // - Parent could not be created
   CFS_NODE *mkdir_p(path_t);
+
+  // Remove an *empty* directory
+  int rmdir_p(path_t);
 
   // Given two paths, rename all directories in the from path such that it
   // matches the to path

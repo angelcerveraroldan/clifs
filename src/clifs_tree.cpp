@@ -45,11 +45,18 @@ std::unique_ptr<CFS_NODE> CFS_NODE::make_file(CFS_NODE *parent,
 }
 
 CFS_NODE *CFS_NODE::add_child(std::unique_ptr<CFS_NODE> child) {
+  if (child == nullptr)
+    return nullptr;
+
   bool is_dir = child->is_dir();
+
   // The name is already in use
   if ((children.find(child->name) != children.end()) || is_file()) {
     return nullptr;
   }
+
+  // Make sure that we have the right parent at all times
+  child->parent = this;
 
   // Add the child to the list of children
   auto [it, inserted] = children.emplace(child->name, std::move(child));
@@ -66,6 +73,14 @@ CFS_NODE *CFS_NODE::add_child(std::unique_ptr<CFS_NODE> child) {
 
 CFS_NODE *CFS_NODE::mkdir(std::string name, mode_t mode, uid_t uid, gid_t gid) {
   return add_child(make_dir(this, name, mode, uid, gid));
+}
+
+int CFS_NODE::rmdir() {
+  if (is_file() || !children.empty())
+    return -EINVAL;
+
+  erase();
+  return 0;
 }
 
 CFS_NODE *CFS_NODE::touch(std::string name, mode_t mode, uid_t uid, gid_t gid,
@@ -133,6 +148,9 @@ int CFS_NODE::rename(name_t new_name) {
 }
 
 std::unique_ptr<CFS_NODE> CFS_NODE::erase() {
+  if (!parent)
+    return nullptr;
+
   auto uptr = std::move(parent->children.at(name));
   // Remove the key
   parent->children.erase(name);
@@ -220,6 +238,16 @@ CFS_NODE *CFS_TREE::mkdir_p(std::string path) {
   return node;
 }
 
+int CFS_TREE::rmdir_p(path_t path) {
+  CFS_NODE *node = find(path);
+
+  // Path not found!
+  if (node == nullptr)
+    return -EINVAL;
+
+  return node->rmdir();
+}
+
 int CFS_TREE::rename_p(path_t from, path_t to) {
   // From path does not exists
   CFS_NODE *from_leaf = find(from);
@@ -228,8 +256,14 @@ int CFS_TREE::rename_p(path_t from, path_t to) {
 
   auto p_from = parent(from), p_to = parent(to);
   auto pfrom_node = find(p_from), pto_node = find(p_to);
-  if (pfrom_node == nullptr || pto_node == nullptr)
+
+  // The from nodes needs to be directories
+  if (pfrom_node == nullptr || pto_node == nullptr || pfrom_node->is_file() ||
+      pto_node->is_file())
     return -EINVAL;
+
+  if (from_leaf->is_dir())
+    pfrom_node->nlink_add(-1);
 
   // This should later have some error handling
   pto_node->add_child(from_leaf->erase());

@@ -83,6 +83,8 @@ static int cf_mkdir(const char *path, mode_t mode) {
   return 0;
 }
 
+static int cf_rmdir(const char *path) { return ctx_tree()->rmdir_p(path); }
+
 static int cf_rename(const char *p1, const char *p2, unsigned int /*flags*/) {
   return ctx_tree()->rename_p(p1, p2);
 }
@@ -94,6 +96,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.readdir = cf_readdir;
   ops.mkdir = cf_mkdir;
   ops.rename = cf_rename;
+  ops.rmdir = cf_rmdir;
 
   return ops;
 }
