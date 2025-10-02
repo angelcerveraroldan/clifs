@@ -151,6 +151,9 @@ std::unique_ptr<CFS_NODE> CFS_NODE::detach_from_parent() {
   if (!parent)
     return nullptr;
 
+  if (is_dir())
+    parent->nlink_add(-1);
+
   auto uptr = std::move(parent->children.at(name));
   // Remove the key
   parent->children.erase(name);
@@ -261,9 +264,6 @@ int CFS_TREE::rename_p(path_t from, path_t to) {
   if (pfrom_node == nullptr || pto_node == nullptr || pfrom_node->is_file() ||
       pto_node->is_file())
     return -EINVAL;
-
-  if (from_leaf->is_dir())
-    pfrom_node->nlink_add(-1);
 
   // This should later have some error handling
   pto_node->adopt_child(from_leaf->detach_from_parent());
