@@ -31,11 +31,12 @@ struct Metadata {
 
 class CFS_NODE {
 public:
-  CFS_NODE(Metadata, NODE_KIND, std::string);
+  CFS_NODE(CFS_NODE *, Metadata, NODE_KIND, std::string);
 
-  static std::unique_ptr<CFS_NODE> make_dir(name_t, mode_t, uid_t, gid_t);
-  static std::unique_ptr<CFS_NODE> make_file(name_t, mode_t, uid_t, gid_t,
-                                             off_t size = 0);
+  static std::unique_ptr<CFS_NODE> make_dir(CFS_NODE *, name_t, mode_t, uid_t,
+                                            gid_t);
+  static std::unique_ptr<CFS_NODE> make_file(CFS_NODE *, name_t, mode_t, uid_t,
+                                             gid_t, off_t size = 0);
 
   bool is_file() const noexcept { return kind == NODE_KIND::FILE; }
   bool is_dir() const noexcept { return kind == NODE_KIND::DIR; }
@@ -43,7 +44,7 @@ public:
   Metadata &metadata() noexcept { return meta; }
 
   // Add a new file or directory (add a generic child)
-  CFS_NODE *add_child(name_t, std::unique_ptr<CFS_NODE>);
+  CFS_NODE *add_child(std::unique_ptr<CFS_NODE>);
 
   // Make a new subdirectory
   CFS_NODE *mkdir(name_t, mode_t mode, uid_t, gid_t);
@@ -57,12 +58,22 @@ public:
 
   std::vector<name_t> children_names();
 
+  int rename(name_t);
+
+  // move the unique pointer to this node.
+  std::unique_ptr<CFS_NODE> erase();
+
 private:
   NODE_KIND kind;
   Metadata meta;
   // Name of the directory or file
   std::string name;
 
+  // We are guaranteed that the parent pointer is valid as long a this is valid
+  // (parents outlives child)
+  //
+  // null if this is the root
+  CFS_NODE *parent;
   std::unordered_map<std::string, std::unique_ptr<CFS_NODE>> children;
   // Files may contain some data in the form of bytes, directories will contain
   // no data.
@@ -89,6 +100,10 @@ public:
   // - Directory already exists
   // - Parent could not be created
   CFS_NODE *mkdir_p(path_t);
+
+  // Given two paths, rename all directories in the from path such that it
+  // matches the to path
+  int rename_p(path_t from, path_t to);
 
 private:
   CFS_NODE root_node;

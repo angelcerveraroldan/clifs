@@ -1,4 +1,5 @@
 #include "clifs_tree.h"
+#include <cerrno>
 #include <cstddef>
 #include <cstring>
 #include <memory>
@@ -9,8 +10,9 @@
 #include <unordered_map>
 #include <vector>
 
-CFS_NODE::CFS_NODE(Metadata md, NODE_KIND nk, std::string name)
-    : kind(nk), name(name) {
+CFS_NODE::CFS_NODE(CFS_NODE *parent, Metadata md, NODE_KIND nk,
+                   std::string name)
+    : kind(nk), name(name), parent(parent) {
   this->meta = md;
 }
 
@@ -25,29 +27,32 @@ Metadata make_metadata(mode_t mode, uid_t uid, gid_t gid, nlink_t nlink,
   return meta;
 }
 
-std::unique_ptr<CFS_NODE> CFS_NODE::make_dir(std::string name, mode_t mode,
-                                             uid_t uid, gid_t gid) {
+std::unique_ptr<CFS_NODE> CFS_NODE::make_dir(CFS_NODE *parent, std::string name,
+                                             mode_t mode, uid_t uid,
+                                             gid_t gid) {
   Metadata meta = make_metadata(mode, uid, gid, 2, 0);
-  return std::make_unique<CFS_NODE>(meta, NODE_KIND::DIR, std::move(name));
+  return std::make_unique<CFS_NODE>(parent, meta, NODE_KIND::DIR,
+                                    std::move(name));
 }
 
-std::unique_ptr<CFS_NODE> CFS_NODE::make_file(std::string name, mode_t mode,
+std::unique_ptr<CFS_NODE> CFS_NODE::make_file(CFS_NODE *parent,
+                                              std::string name, mode_t mode,
                                               uid_t uid, gid_t gid,
                                               off_t size) {
   Metadata meta = make_metadata(mode, uid, gid, 1, size);
-  return std::make_unique<CFS_NODE>(meta, NODE_KIND::FILE, std::move(name));
+  return std::make_unique<CFS_NODE>(parent, meta, NODE_KIND::FILE,
+                                    std::move(name));
 }
 
-CFS_NODE *CFS_NODE::add_child(std::string name,
-                              std::unique_ptr<CFS_NODE> child) {
+CFS_NODE *CFS_NODE::add_child(std::unique_ptr<CFS_NODE> child) {
   bool is_dir = child->is_dir();
   // The name is already in use
-  if ((children.find(name) != children.end()) || is_file()) {
+  if ((children.find(child->name) != children.end()) || is_file()) {
     return nullptr;
   }
 
   // Add the child to the list of children
-  auto [it, inserted] = children.emplace(std::move(name), std::move(child));
+  auto [it, inserted] = children.emplace(child->name, std::move(child));
 
   // Error during insertion
   if (!inserted)
@@ -60,12 +65,12 @@ CFS_NODE *CFS_NODE::add_child(std::string name,
 }
 
 CFS_NODE *CFS_NODE::mkdir(std::string name, mode_t mode, uid_t uid, gid_t gid) {
-  return add_child(name, make_dir(name, mode, uid, gid));
+  return add_child(make_dir(this, name, mode, uid, gid));
 }
 
 CFS_NODE *CFS_NODE::touch(std::string name, mode_t mode, uid_t uid, gid_t gid,
                           off_t size) {
-  return add_child(name, make_file(name, mode, uid, gid, size));
+  return add_child(make_file(this, name, mode, uid, gid, size));
 }
 
 void CFS_NODE::to_stat(struct stat &st) const {
@@ -91,6 +96,47 @@ std::vector<std::string> CFS_NODE::children_names() {
   for (auto &kv : children)
     names.emplace_back(kv.first);
   return names;
+}
+
+int CFS_NODE::rename(name_t new_name) {
+  // You cannot rename the root node
+  if (parent == nullptr)
+    return -EINVAL;
+
+  // Nothing to do
+  if (name == new_name)
+    return 0;
+
+  // Path already exists
+  if (parent->find_child(new_name) != nullptr)
+    return -EEXIST;
+
+  // Make sure to change the parent children name
+  //
+  // We know that the parents children map will contain the key `name`
+  auto it = parent->children.find(name);
+  std::unique_ptr<CFS_NODE> unique_this = std::move(it->second);
+  parent->children.erase(it);
+  this->name = new_name;
+  auto [_it, inserted] =
+      parent->children.emplace(new_name, std::move(unique_this));
+
+  // There was an error when inserting the new_name -- This is a fatal error
+  // with loss of data ...
+  //
+  // Later there should be some sort of rollback if this happens
+  if (!inserted) {
+    return -EIO;
+  }
+
+  return 0;
+}
+
+std::unique_ptr<CFS_NODE> CFS_NODE::erase() {
+  auto uptr = std::move(parent->children.at(name));
+  // Remove the key
+  parent->children.erase(name);
+  return uptr;
 }
 
 std::vector<std::string> split_name(std::string path) {
@@ -125,8 +171,8 @@ std::string parent(std::string path) {
 }
 
 CFS_TREE::CFS_TREE()
-    : root_node(make_metadata(0555, getuid(), getgid(), 2, 0), NODE_KIND::DIR,
-                "/") {}
+    : root_node(nullptr, make_metadata(0555, getuid(), getgid(), 2, 0),
+                NODE_KIND::DIR, "/") {}
 
 CFS_NODE *CFS_TREE::find(std::string path) {
   CFS_NODE *node = &root_node;
@@ -172,4 +218,20 @@ CFS_NODE *CFS_TREE::mkdir_p(std::string path) {
     cnode = node->mkdir(comp, 0555, uid, gid);
   }
   return node;
+}
+
+int CFS_TREE::rename_p(path_t from, path_t to) {
+  // From path does not exists
+  CFS_NODE *from_leaf = find(from);
+  if (!from_leaf)
+    return -EINVAL;
+
+  auto p_from = parent(from), p_to = parent(to);
+  auto pfrom_node = find(p_from), pto_node = find(p_to);
+  if (pfrom_node == nullptr || pto_node == nullptr)
+    return -EINVAL;
+
+  // This should later have some error handling
+  pto_node->add_child(from_leaf->erase());
+  return 0;
 }

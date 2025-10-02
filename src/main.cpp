@@ -83,12 +83,17 @@ static int cf_mkdir(const char *path, mode_t mode) {
   return 0;
 }
 
+static int cf_rename(const char *p1, const char *p2, unsigned int /*flags*/) {
+  return ctx_tree()->rename_p(p1, p2);
+}
+
 static fuse_operations clifs_fuse_operations() {
   fuse_operations ops{};
 
   ops.getattr = cf_getatt;
   ops.readdir = cf_readdir;
   ops.mkdir = cf_mkdir;
+  ops.rename = cf_rename;
 
   return ops;
 }
