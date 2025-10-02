@@ -143,6 +143,20 @@ CFS_NODE *CFS_TREE::find(std::string path) {
   return node;
 }
 
+CFS_NODE *CFS_TREE::touch_p(std::string path) {
+  auto components = split_name(path);
+  std::string parent_path = parent(path);
+  std::string file_name = components.back();
+  CFS_NODE *parent = mkdir_p(parent_path);
+
+  if (parent == nullptr || parent->is_file())
+    return nullptr;
+
+  auto uid = getuid(), gid = getgid();
+  CFS_NODE *new_file = parent->touch(file_name, 0555, uid, gid);
+  return new_file;
+}
+
 CFS_NODE *CFS_TREE::mkdir_p(std::string path) {
   CFS_NODE *node = &root_node;
   auto components = split_name(path);

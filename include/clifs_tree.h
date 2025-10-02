@@ -9,6 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
+// A path is just a string
+typedef std::string path_t;
+// The name of a file or directory
+typedef std::string name_t;
+
 enum class NODE_KIND { FILE, DIR };
 
 struct Metadata {
@@ -28,8 +33,8 @@ class CFS_NODE {
 public:
   CFS_NODE(Metadata, NODE_KIND, std::string);
 
-  static std::unique_ptr<CFS_NODE> make_dir(std::string, mode_t, uid_t, gid_t);
-  static std::unique_ptr<CFS_NODE> make_file(std::string, mode_t, uid_t, gid_t,
+  static std::unique_ptr<CFS_NODE> make_dir(name_t, mode_t, uid_t, gid_t);
+  static std::unique_ptr<CFS_NODE> make_file(name_t, mode_t, uid_t, gid_t,
                                              off_t size = 0);
 
   bool is_file() const noexcept { return kind == NODE_KIND::FILE; }
@@ -38,19 +43,19 @@ public:
   Metadata &metadata() noexcept { return meta; }
 
   // Add a new file or directory (add a generic child)
-  CFS_NODE *add_child(std::string, std::unique_ptr<CFS_NODE>);
+  CFS_NODE *add_child(name_t, std::unique_ptr<CFS_NODE>);
 
   // Make a new subdirectory
-  CFS_NODE *mkdir(std::string, mode_t mode, uid_t, gid_t);
+  CFS_NODE *mkdir(name_t, mode_t mode, uid_t, gid_t);
 
   // Make a new file
-  CFS_NODE *touch(std::string name, mode_t mode, uid_t, gid_t, off_t size = 0);
+  CFS_NODE *touch(name_t name, mode_t mode, uid_t, gid_t, off_t size = 0);
 
-  CFS_NODE *find_child(std::string name);
+  CFS_NODE *find_child(name_t name);
 
   void to_stat(struct stat &st) const;
 
-  std::vector<std::string> children_names();
+  std::vector<name_t> children_names();
 
 private:
   NODE_KIND kind;
@@ -68,17 +73,37 @@ class CFS_TREE {
 public:
   CFS_TREE();
   CFS_TREE(CFS_NODE root_node);
-  CFS_NODE *find(std::string path);
 
-  CFS_NODE *touch_p(std::string path);
-  CFS_NODE *mkdir_p(std::string path);
+  // Find a node with a given absolute path
+  CFS_NODE *find(path_t);
+
+  // Given an absolute path to a non-existant file, create said file
+  //
+  // Will return void if:
+  // - File already exists
+  // - Parent could not be created
+  CFS_NODE *touch_p(path_t);
+  // Given an absolute path to a directory, create said dierectory
+  //
+  // Will return void if:
+  // - Directory already exists
+  // - Parent could not be created
+  CFS_NODE *mkdir_p(path_t);
 
 private:
   CFS_NODE root_node;
 };
 
-// Some helper functions
-std::string parent(std::string);
-std::vector<std::string> split_name(std::string);
+/*
+ *  HELPER FUNCTIONS
+ * */
+
+// Give some absolute path, get the parent path
+std::string parent(path_t);
+
+// Given some path, divide it into its segments
+//
+// I.e. /this/that/hello.txt -> {this, that, hello.txt}
+std::vector<std::string> split_name(path_t);
 
 #endif
