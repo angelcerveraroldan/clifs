@@ -209,9 +209,9 @@ CFS_NODE *CFS_TREE::find(std::string path) {
 
 CFS_NODE *CFS_TREE::touch_p(std::string path) {
   auto components = path_components(path);
-  std::string parent_path = parent_path(path);
+  std::string pp = parent_path(path);
   std::string file_name = components.back();
-  CFS_NODE *parent = mkdir_p(parent_path);
+  CFS_NODE *parent = mkdir_p(pp);
 
   if (parent == nullptr || parent->is_file())
     return nullptr;
