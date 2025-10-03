@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -159,6 +160,17 @@ static int cf_release([[maybe_unused]] const char *path,
   return 0;
 }
 
+static int cf_write([[maybe_unused]] const char *path, const char *data,
+                    size_t size, off_t offset, struct fuse_file_info *ffi) {
+  FileHandle *fh = ctx_filedesc_table()->get(ffi->fh);
+  CFS_NODE *node = fh->node;
+
+  // Update GID and UID as per docs
+  node->metadata().gid = getgid();
+  node->metadata().uid = getuid();
+  return node->update_data(data, offset, size);
+}
+
 // FIXME: Times are not stored yet
 static int cf_utimens(const char *path,
                       [[maybe_unused]] const struct timespec tv[2],
@@ -183,6 +195,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.utimens = cf_utimens;
   ops.mknod = cf_mknod;
   ops.unlink = cf_unlink;
+  ops.write = cf_write;
 
   return ops;
 }

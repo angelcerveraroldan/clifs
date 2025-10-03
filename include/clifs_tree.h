@@ -85,6 +85,8 @@ public:
 
   std::optional<std::string> get_data() const { return data; }
 
+  int update_data(std::string, off_t, size_t);
+
 private:
   NODE_KIND kind;
   Metadata meta;

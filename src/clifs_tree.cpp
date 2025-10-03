@@ -160,6 +160,21 @@ std::unique_ptr<CFS_NODE> CFS_NODE::detach_from_parent() {
   return uptr;
 }
 
+int CFS_NODE::update_data(std::string src, off_t offset, size_t size) {
+  std::string cur = data.value_or(std::string{});
+  const size_t off = static_cast<size_t>(offset);
+
+  if (off > cur.size())
+    cur.resize(off, '\0');
+  if (off + size > cur.size())
+    cur.resize(off + size);
+
+  std::memcpy(&cur[off], src.c_str(), size);
+  data = cur;
+  meta.size = static_cast<off_t>(cur.size());
+  return static_cast<int>(size);
+}
+
 std::vector<std::string> path_components(std::string path) {
   std::vector<std::string> components;
   std::string next;
