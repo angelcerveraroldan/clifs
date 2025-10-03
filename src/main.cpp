@@ -110,6 +110,28 @@ static int cf_open(const char *path, struct fuse_file_info *ffi) {
   return 0;
 }
 
+static int cf_read([[maybe_unused]] const char *path, char *buffer, size_t size,
+                   off_t offset, struct fuse_file_info *ffi) {
+  auto *table = ctx_filedesc_table();
+  auto *file_handle = table->get(ffi->fh);
+
+  if (!file_handle)
+    return -EBADF;
+
+  CFS_NODE *node = file_handle->node;
+  std::string val = node->get_data().value_or("");
+  size_t len = val.length();
+
+  if ((size_t)offset >= len)
+    return 0;
+
+  if (offset + size > len)
+    size = len - offset;
+
+  memcpy(buffer, node->get_data().value_or("").c_str() + offset, size);
+  return size;
+}
+
 static fuse_operations clifs_fuse_operations() {
   fuse_operations ops{};
 
@@ -119,6 +141,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.rename = cf_rename;
   ops.rmdir = cf_rmdir;
   ops.open = cf_open;
+  ops.read = cf_read;
 
   return ops;
 }
