@@ -138,6 +138,20 @@ static int cf_mknod(const char *path, mode_t mode, [[maybe_unused]] dev_t dev) {
   return 0;
 }
 
+static int cf_unlink(const char *path) {
+  CFS_NODE *node = ctx_tree()->find(path);
+
+  if (!node)
+    return -EEXIST;
+
+  if (node->is_dir())
+    return -EISDIR;
+
+  // Detach the file from parent. This will automatically be deallocated
+  node->detach_from_parent();
+  return 0;
+}
+
 static int cf_release([[maybe_unused]] const char *path,
                       struct fuse_file_info *ffi) {
   auto handle = ffi->fh;
@@ -168,6 +182,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.release = cf_release;
   ops.utimens = cf_utimens;
   ops.mknod = cf_mknod;
+  ops.unlink = cf_unlink;
 
   return ops;
 }
