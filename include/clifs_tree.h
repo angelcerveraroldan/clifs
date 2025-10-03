@@ -83,6 +83,8 @@ public:
   // Add to the nlink
   void nlink_add(int by) { meta.nlink += by; }
 
+  std::optional<std::string> get_data() const { return data; }
+
 private:
   NODE_KIND kind;
   Metadata meta;
@@ -97,7 +99,7 @@ private:
   std::unordered_map<std::string, std::unique_ptr<CFS_NODE>> children;
   // Files may contain some data in the form of bytes, directories will contain
   // no data.
-  std::optional<std::vector<std::byte>> data;
+  std::optional<std::string> data;
 };
 
 class CFS_TREE {

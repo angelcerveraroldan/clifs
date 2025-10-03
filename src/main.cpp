@@ -1,7 +1,10 @@
 #include "clifs_tree.h"
+#include "file_desc.h"
 #include "params.h"
+#include "state.h"
 #include <algorithm>
 #include <cerrno>
+#include <cstdint>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -13,7 +16,11 @@
 #include <fuse3/fuse.h>
 
 static CFS_TREE *ctx_tree() {
-  return static_cast<CFS_TREE *>(fuse_get_context()->private_data);
+  return &static_cast<CFS_STATE *>(fuse_get_context()->private_data)->tree;
+}
+
+static FD_TABLE *ctx_filedesc_table() {
+  return &static_cast<CFS_STATE *>(fuse_get_context()->private_data)->file_desc;
 }
 
 // Get file attributes
@@ -89,6 +96,20 @@ static int cf_rename(const char *p1, const char *p2, unsigned int /*flags*/) {
   return ctx_tree()->rename_p(p1, p2);
 }
 
+static int cf_open(const char *path, struct fuse_file_info *ffi) {
+  CFS_NODE *node = ctx_tree()->find(path);
+  FD_TABLE *table = ctx_filedesc_table();
+
+  if (!node)
+    return -ENOENT;
+
+  if (node->is_dir())
+    return -EISDIR;
+
+  ffi->fh = table->open(node, ffi->flags);
+  return 0;
+}
+
 static fuse_operations clifs_fuse_operations() {
   fuse_operations ops{};
 
@@ -97,6 +118,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.mkdir = cf_mkdir;
   ops.rename = cf_rename;
   ops.rmdir = cf_rmdir;
+  ops.open = cf_open;
 
   return ops;
 }
@@ -108,7 +130,7 @@ void help_message() {
 }
 
 int main(int argc, char *argv[]) {
-  CFS_TREE data;
+  CFS_STATE data;
   fuse_operations ops = clifs_fuse_operations();
   fuse_main(argc, argv, &ops, &data);
   return 0;
