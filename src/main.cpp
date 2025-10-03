@@ -132,6 +132,12 @@ static int cf_read([[maybe_unused]] const char *path, char *buffer, size_t size,
   return size;
 }
 
+static int cf_mknod(const char *path, mode_t mode, [[maybe_unused]] dev_t dev) {
+  CFS_NODE *node = ctx_tree()->touch_p(path);
+  node->metadata().mode = mode;
+  return 0;
+}
+
 static int cf_release([[maybe_unused]] const char *path,
                       struct fuse_file_info *ffi) {
   auto handle = ffi->fh;
@@ -161,6 +167,7 @@ static fuse_operations clifs_fuse_operations() {
   ops.read = cf_read;
   ops.release = cf_release;
   ops.utimens = cf_utimens;
+  ops.mknod = cf_mknod;
 
   return ops;
 }
