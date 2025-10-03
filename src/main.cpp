@@ -132,6 +132,23 @@ static int cf_read([[maybe_unused]] const char *path, char *buffer, size_t size,
   return size;
 }
 
+static int cf_release([[maybe_unused]] const char *path,
+                      struct fuse_file_info *ffi) {
+  auto handle = ffi->fh;
+  ctx_filedesc_table()->close(handle);
+  return 0;
+}
+
+// FIXME: Times are not stored yet
+static int cf_utimens(const char *path,
+                      [[maybe_unused]] const struct timespec tv[2],
+                      [[maybe_unused]] struct fuse_file_info *fi) {
+  CFS_NODE *n = ctx_tree()->find(path);
+  if (!n)
+    return -ENOENT;
+  return 0;
+}
+
 static fuse_operations clifs_fuse_operations() {
   fuse_operations ops{};
 
@@ -142,6 +159,8 @@ static fuse_operations clifs_fuse_operations() {
   ops.rmdir = cf_rmdir;
   ops.open = cf_open;
   ops.read = cf_read;
+  ops.release = cf_release;
+  ops.utimens = cf_utimens;
 
   return ops;
 }
