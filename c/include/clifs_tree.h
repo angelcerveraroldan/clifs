@@ -1,0 +1,64 @@
+#include <stddef.h>
+#include <sys/types.h>
+
+#include "helpers.h"
+
+// Does this node represent a file or a directory
+typedef enum { CFS_FILE, CFS_DIR } node_kind_t;
+
+typedef struct metadata_t {
+  // Permissions
+  mode_t mode;
+  // User id
+  uid_t uid;
+  // Group id
+  gid_t gid;
+  // Link number
+  nlink_t nlink;
+  // Size
+  off_t size;
+} metadata_t;
+
+// Dynamically sized array containing the children of a node
+typedef struct children {
+	// The number of children
+	size_t len;
+	// The maximum number of children that can stored before needing
+	// reallocation.
+	size_t cap;
+	struct cfs_node **items;
+} children;
+
+// Create an empty instance of the children struct
+void init_children(struct children *);
+
+// Insert a new child to the children array
+int insert_child(struct children *, struct cfs_node *);
+
+void free_all_children(struct children *);
+
+
+typedef union node_data {
+	struct cstr_t file_content;
+	struct children dir_children;
+} node_data;
+
+// This contains the information that all nodes (file and dir) have in common.
+typedef struct cfs_node {
+	metadata_t  meta;
+	node_kind_t node_k;
+
+	struct cstr_t name;
+	struct cfs_node *parent;
+	union node_data data;
+} cfs_node;
+
+// Initialize a node. After initialization, `parent` will be NULL. Parent shuold
+// be set when inserting the node into the list of children.
+void init_node(struct cfs_node *, metadata_t, node_kind_t, const char *);
+// Create a new node. After creating, `parent` will be NULL. Parent shuold
+// be set when inserting the node into the list of children.
+cfs_node *new_node(metadata_t, node_kind_t, const char *);
+
+void free_node(struct cfs_node *);
+
