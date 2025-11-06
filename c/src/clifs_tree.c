@@ -75,6 +75,10 @@ int adopt_child(struct cfs_node *r, struct cfs_node *c)
 	// A file cannot have a child
 	if (is_file(r) || r == NULL || c == NULL) return -EINVAL;
 
+	// Name already in use
+	if (find_child_with_name(&r->data.dir_children, c->name.data) != 0)
+		return -EINVAL;
+
 	int e = insert_child(&r->data.dir_children, c);
 	if (e != 0) return e;
 	c->parent = r;
