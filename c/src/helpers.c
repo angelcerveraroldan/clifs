@@ -34,3 +34,27 @@ void free_cstr(cfstr_t *s)
 	s->cap=0;
 	s->len=0;
 }
+
+// Returns index of the slash before the final path component (leaf).
+// Trims trailing '/' (except root). Returns -1 if no parent/leaf split exists.
+int last_dash(const char *path)
+{
+	if (!path) return -1;
+	ssize_t n = strlen(path);
+	if (n == 0) return -1;
+
+	// Trim trailing slashes but keep a single "/" as-is
+	while (n > 1 && path[n - 1] == '/') n--;
+
+	// If now just "/", or no slash at all → no split
+	if (n == 1 && path[0] == '/') return -1;
+
+	// Find the slash immediately before the leaf
+	for (ssize_t i = (ssize_t)n - 1; i >= 0; --i) {
+		if (path[i] == '/') {
+			// i is the separator; leaf starts at i+1 (guaranteed non-'/' due to trim)
+			return (int)i;
+		}
+	}
+	return -1;
+}
