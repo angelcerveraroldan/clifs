@@ -37,6 +37,11 @@ int insert_child(struct children *, struct cfs_node *);
 
 void free_all_children(struct children *);
 
+// Return the index at which you can find the child with the given name.
+//
+// If it is not found, then -1 will be returned.
+int find_child_with_name(struct children *c, const char *name);
+
 
 typedef union node_data {
 	struct cstr_t file_content;
