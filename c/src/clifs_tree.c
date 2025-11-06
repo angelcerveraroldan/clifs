@@ -3,6 +3,7 @@
 #include <asm-generic/errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 void init_children(struct children *c) 
 {
@@ -179,3 +180,89 @@ void free_node(struct cfs_node *node)
 	free_cstr(&node->name);
 	free(node);
 }
+
+cfs_tree *new_tree(void)
+{
+	metadata_t meta = {0};
+	meta.gid = getgid();
+	meta.uid = getuid();
+	meta.nlink = 2;
+	meta.mode = 0755;
+	meta.size = 0;
+
+	cfs_tree *tree = calloc(1, sizeof *tree);
+	if (!tree) return NULL;
+
+	tree->root_node = new_node(meta, CFS_DIR, "");
+	return tree;
+}
+
+cfs_node *find_node_by_path(const cfs_tree *tree, const char *path)
+{
+	if (!tree || !tree->root_node || !path) return NULL;
+	cfs_node *curr_node = tree->root_node;
+
+	// Handle "", and "/"
+	if (path[0] == '\0' || (path[0]=='/' && path[1]=='\0')) return curr_node;
+
+	const char *p = path;
+	if (*p == '/') p++;
+
+	while (*p)
+	{
+		const char *start = p;
+		while (*p && *p != '/') p++;
+		size_t l = (size_t) (p - start);
+
+		// We want to just keep going when we find doubled '/', for example,
+		// "foo//bar" should be the same as "foo/bar"
+		if (l == 0) { if (*p=='/') p++; continue; }
+
+		// If we find "./", then we just keep going!
+		if (l == 1 && start[0] == '.') 
+		{
+			if (*p == '/') p++;
+			continue;
+		}
+
+		// Check for ".."
+		if (l == 2 && start[0] == '.' && start[1] == '.')
+		{
+			if (!curr_node->parent) return NULL;
+			curr_node = curr_node->parent;
+			if (*p == '/') p++;
+			continue;
+		}
+
+		// We want to go to a child of the current node
+		if (is_file(curr_node)) return NULL;
+		int index = find_child_with_span(&curr_node->data.dir_children, start, l);
+		// Child not found
+		if (index == -1) return NULL;
+		curr_node = curr_node->data.dir_children.items[index];
+		p ++;
+	}
+
+	return curr_node;
+}
+
+cfs_node *find_parent_node_by_path(const cfs_tree *tree, const char *path, const char **fin_name)
+{
+	int sep = last_dash(path);
+	if (sep == -1)
+	{
+		*fin_name = path;
+		return tree->root_node;
+	}
+
+	char *parent_path = malloc((sep+1) * sizeof(char));
+	if (!parent_path) return NULL;
+
+	memcpy(parent_path, path, sep);
+	parent_path[sep] = '\0';
+	*fin_name = path + sep + 1;
+	cfs_node *node = find_node_by_path(tree, parent_path);
+	free(parent_path);
+	return node;
+}
+
