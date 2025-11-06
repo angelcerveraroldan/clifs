@@ -53,6 +53,21 @@ int find_child_with_name(struct children *c, const char *name)
 	return -1;
 }
 
+int find_child_with_span(struct children *c, const char *name, size_t len)
+{
+
+	for (size_t i = 0; i < c->len; i ++)
+	{
+		if (c->items[i]->name.len != len) continue;
+		if (memcmp(c->items[i]->name.data, name, len) == 0) return i;
+	}
+	return -1;
+
+}
+
+int is_file(cfs_node *n) { return n->node_k == CFS_FILE; }
+int is_dir (cfs_node *n) { return n->node_k == CFS_DIR ; }
+
 void init_node(struct cfs_node *node, metadata_t meta, node_kind_t node_k, const char * name)
 {
 	node->meta = meta;
