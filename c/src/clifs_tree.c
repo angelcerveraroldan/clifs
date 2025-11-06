@@ -43,6 +43,15 @@ void free_all_children(struct children * c)
 	c->len = 0;
 }
 
+// Quite a slow check, but I dont expect it will ever have to handle
+// large values of n. This should later be optimized.
+int find_child_with_name(struct children *c, const char *name)
+{
+	for (size_t i = 0; i < c->len; i ++)
+		if (strcmp(c->items[i]->name.data, name) == 0) return i;
+	return -1;
+}
+
 void init_node(struct cfs_node *node, metadata_t meta, node_kind_t node_k, const char * name)
 {
 	node->meta = meta;
