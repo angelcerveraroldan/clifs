@@ -78,5 +78,10 @@ int mkdir(struct cfs_node *r, metadata_t, const char *);
 // of `r`
 int touch(struct cfs_node *r, metadata_t, const char *);
 
+// Remove an *empty* directory.
+//
+// This shuld give an error if r is not empty, or not a dir.
+int rmdir(struct cfs_node *r);
+
 void free_node(struct cfs_node *);
 
