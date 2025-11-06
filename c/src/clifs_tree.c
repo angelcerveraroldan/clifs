@@ -103,13 +103,13 @@ int adopt_child(struct cfs_node *r, struct cfs_node *c)
 	return 0;
 }
 
-int mkdir(struct cfs_node *r, metadata_t meta, const char *name)
+int cfs_node_mkdir(struct cfs_node *r, metadata_t meta, const char *name)
 {
 	cfs_node *nn = new_node(meta, CFS_DIR, name);
 	return adopt_child(r, nn);
 }
 
-int touch(struct cfs_node *r, metadata_t meta, const char *name)
+int cfs_node_touch(struct cfs_node *r, metadata_t meta, const char *name)
 {
 	cfs_node *nn = new_node(meta, CFS_FILE, name);
 	return adopt_child(r, nn);
@@ -143,7 +143,7 @@ int detach(struct cfs_node *r)
 	return 0;
 }
 
-int rmdir(struct cfs_node *r)
+int cfs_node_rmdir(struct cfs_node *r)
 {
 	if (r == NULL || is_file(r)) return -EINVAL;
 	if (r->data.dir_children.len != 0) return -ENOTEMPTY;

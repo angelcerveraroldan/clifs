@@ -73,10 +73,10 @@ cfs_node *new_node(metadata_t, node_kind_t, const char *);
 int adopt_child(struct cfs_node *r, struct cfs_node *c);
 // Insert a new empty directory with a given name and given metadata as a child
 // of `r`
-int mkdir(struct cfs_node *r, metadata_t, const char *);
+int cfs_node_mkdir(struct cfs_node *r, metadata_t, const char *);
 // Insert a new empty file with a given name and given metadata as a child
 // of `r`
-int touch(struct cfs_node *r, metadata_t, const char *);
+int cfs_node_touch(struct cfs_node *r, metadata_t, const char *);
 
 // Detach a node from parent. Of couse, this does not work with the root
 // node as it does not have a parent.
@@ -87,7 +87,10 @@ int detach(struct cfs_node *);
 // Remove an *empty* directory.
 //
 // This shuld give an error if r is not empty, or not a dir.
-int rmdir(struct cfs_node *r);
+int cfs_node_rmdir(struct cfs_node *r);
 
 void free_node(struct cfs_node *);
 
+typedef struct cfs_tree {
+	struct cfs_node root_node;
+} cfs_tree;
