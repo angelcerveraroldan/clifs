@@ -1,5 +1,6 @@
 #include "clifs_tree.h"
 #include <asm-generic/errno-base.h>
+#include <asm-generic/errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -70,14 +71,27 @@ cfs_node *new_node(metadata_t meta, node_kind_t node_k, const char * name)
 	return node;
 }
 
+int rename(struct cfs_node *n, const char *new_name)
+{
+	// Cannot rename root node
+	if (n == NULL || n->parent == NULL) return -EINVAL;
+
+	// Check that the name does not already exist as a sibling
+	int index = find_child_with_name(&n->parent->data.dir_children, new_name);
+	if (index != -1) return -EEXIST;
+
+	// Edit the name of the node
+	return cstr_set(&n->name, new_name);
+}
+
 int adopt_child(struct cfs_node *r, struct cfs_node *c)
 {
 	// A file cannot have a child
 	if (is_file(r) || r == NULL || c == NULL) return -EINVAL;
 
 	// Name already in use
-	if (find_child_with_name(&r->data.dir_children, c->name.data) != 0)
-		return -EINVAL;
+	if (find_child_with_name(&r->data.dir_children, c->name.data) != -1)
+		return -EEXIST;
 
 	int e = insert_child(&r->data.dir_children, c);
 	if (e != 0) return e;
