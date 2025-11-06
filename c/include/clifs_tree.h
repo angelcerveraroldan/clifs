@@ -92,5 +92,23 @@ int cfs_node_rmdir(struct cfs_node *r);
 void free_node(struct cfs_node *);
 
 typedef struct cfs_tree {
-	struct cfs_node root_node;
+	struct cfs_node *root_node;
 } cfs_tree;
+
+cfs_tree *new_tree(void);
+
+// Given a path, return a pointer to the corresponding node. Will return NULL
+// if the node does not exist.
+cfs_node *find_node_by_path(const cfs_tree *, const char *);
+
+// Given some path, return a pointer to the second last node, as well as the name of the
+// last node.
+//
+// For example "/foo/bar" will return a pointer to "/foo" and will save "bar" to fin_name.
+//
+// This is useful when creating new nodes, as the full path will not exist, but the parent
+// path needs to exist.
+cfs_node *find_parent_node_by_path(const cfs_tree *tree, const char *path, const char **fin_name);
+
+cfs_node *mkdir_path(const cfs_tree *, const char *);
+
