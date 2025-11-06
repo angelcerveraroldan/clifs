@@ -68,5 +68,15 @@ void init_node(struct cfs_node *, metadata_t, node_kind_t, const char *);
 // be set when inserting the node into the list of children.
 cfs_node *new_node(metadata_t, node_kind_t, const char *);
 
+// Given nodes `r` and `c`, insert `c` as a child of `r`. From now on,
+// `r.data.dir_children` will be responsible for freeing `c`.
+int adopt_child(struct cfs_node *r, struct cfs_node *c);
+// Insert a new empty directory with a given name and given metadata as a child
+// of `r`
+int mkdir(struct cfs_node *r, metadata_t, const char *);
+// Insert a new empty file with a given name and given metadata as a child
+// of `r`
+int touch(struct cfs_node *r, metadata_t, const char *);
+
 void free_node(struct cfs_node *);
 

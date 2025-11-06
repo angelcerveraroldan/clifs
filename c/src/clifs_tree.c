@@ -1,6 +1,7 @@
 #include "clifs_tree.h"
 #include <asm-generic/errno-base.h>
 #include <stdlib.h>
+#include <string.h>
 
 void init_children(struct children *c) 
 {
@@ -58,6 +59,29 @@ cfs_node *new_node(metadata_t meta, node_kind_t node_k, const char * name)
 	cfs_node *node = malloc(sizeof(cfs_node));
 	init_node(node, meta, node_k, name);
 	return node;
+}
+
+int adopt_child(struct cfs_node *r, struct cfs_node *c)
+{
+	// A file cannot have a child
+	if (is_file(r) || r == NULL || c == NULL) return -EINVAL;
+
+	int e = insert_child(&r->data.dir_children, c);
+	if (e != 0) return e;
+	c->parent = r;
+	return 0;
+}
+
+int mkdir(struct cfs_node *r, metadata_t meta, const char *name)
+{
+	cfs_node *nn = new_node(meta, CFS_DIR, name);
+	return adopt_child(r, nn);
+}
+
+int touch(struct cfs_node *r, metadata_t meta, const char *name)
+{
+	cfs_node *nn = new_node(meta, CFS_FILE, name);
+	return adopt_child(r, nn);
 }
 
 void free_node(struct cfs_node *node)
