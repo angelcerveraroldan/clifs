@@ -97,6 +97,46 @@ int touch(struct cfs_node *r, metadata_t meta, const char *name)
 	return adopt_child(r, nn);
 }
 
+// Detach a node from parent. Of couse, this does not work with the root
+// node as it does not have a parent.
+int detach(struct cfs_node *r)
+{
+	if (r == NULL || r->parent == NULL) return -EINVAL;
+
+	children *c = &r->parent->data.dir_children;
+	int index = find_child_with_name(c, r->name.data);
+
+	// This shuold never happen, the name must be found.
+	if (index == -1) return -ENOENT;
+
+	// This is safe from underflow, as parent must have at least r as a child
+	size_t last = c->len - 1;
+
+	if ((size_t) index != last) 
+	{
+		c->items[index] = c->items[last];
+		c->items[last]  = NULL;
+	}
+
+	if (is_dir(r)) r->parent->meta.nlink --;
+	r->parent = NULL;
+	c->len --;
+
+	return 0;
+}
+
+int rmdir(struct cfs_node *r)
+{
+	if (r == NULL || is_file(r)) return -EINVAL;
+	if (r->data.dir_children.len != 0) return -ENOTEMPTY;
+
+	int d = detach(r);
+	if (d != 0) return d;
+
+	free_node(r);
+	return 0;
+}
+
 void free_node(struct cfs_node *node)
 {
 	// Start by freeing the data

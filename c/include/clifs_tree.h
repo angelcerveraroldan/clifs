@@ -78,6 +78,12 @@ int mkdir(struct cfs_node *r, metadata_t, const char *);
 // of `r`
 int touch(struct cfs_node *r, metadata_t, const char *);
 
+// Detach a node from parent. Of couse, this does not work with the root
+// node as it does not have a parent.
+//
+// This will not free the node from memory.
+int detach(struct cfs_node *);
+
 // Remove an *empty* directory.
 //
 // This shuld give an error if r is not empty, or not a dir.
