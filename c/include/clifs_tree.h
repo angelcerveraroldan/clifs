@@ -58,6 +58,9 @@ typedef struct cfs_node {
 	union node_data data;
 } cfs_node;
 
+int is_file(cfs_node *n) { return n->node_k == CFS_FILE; }
+int is_dir (cfs_node *n) { return n->node_k == CFS_DIR ; }
+
 // Initialize a node. After initialization, `parent` will be NULL. Parent shuold
 // be set when inserting the node into the list of children.
 void init_node(struct cfs_node *, metadata_t, node_kind_t, const char *);
