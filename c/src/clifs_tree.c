@@ -76,6 +76,10 @@ int rename(struct cfs_node *n, const char *new_name)
 	// Cannot rename root node
 	if (n == NULL || n->parent == NULL) return -EINVAL;
 
+	if (strlen(new_name) > 255) return -ENAMETOOLONG;
+	if (strcmp(new_name, "") == 0 || strcmp(new_name, ".") == 0 || strcmp(new_name, "..") == 0) 
+		return -EINVAL;
+
 	// Check that the name does not already exist as a sibling
 	int index = find_child_with_name(&n->parent->data.dir_children, new_name);
 	if (index != -1) return -EEXIST;
