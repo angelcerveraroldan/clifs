@@ -44,7 +44,7 @@ int find_child_with_name(struct children *c, const char *name);
 
 
 typedef union node_data {
-	struct cstr_t file_content;
+	struct cf_str_t file_content;
 	struct children dir_children;
 } node_data;
 
@@ -53,13 +53,13 @@ typedef struct cfs_node {
 	metadata_t  meta;
 	node_kind_t node_k;
 
-	struct cstr_t name;
+	struct cf_str_t name;
 	struct cfs_node *parent;
 	union node_data data;
 } cfs_node;
 
-int is_file(cfs_node *n) { return n->node_k == CFS_FILE; }
-int is_dir (cfs_node *n) { return n->node_k == CFS_DIR ; }
+int is_file(cfs_node *n);
+int is_dir (cfs_node *n);
 
 // Initialize a node. After initialization, `parent` will be NULL. Parent shuold
 // be set when inserting the node into the list of children.

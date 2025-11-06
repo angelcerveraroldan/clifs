@@ -3,8 +3,11 @@
 #include <asm-generic/errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <sys/types.h>
 
-int cstr_set(cstr_t *s, const char *new_str)
+
+int cstr_set(cfstr_t *s, const char *new_str)
 {
 	if (s == NULL || new_str == NULL) return -EINVAL;
 
@@ -23,7 +26,7 @@ int cstr_set(cstr_t *s, const char *new_str)
 	return 0;
 }
 
-void free_cstr(cstr_t *s)
+void free_cstr(cfstr_t *s)
 {
 	if (s==NULL) return;
 	free(s->data);
