@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 // Just for the time being ...
 #ifndef S_IFDIR
@@ -83,9 +84,41 @@ static int cfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, o
 	return 0;
 }
 
+static int cfs_mkdir(const char *path, mode_t mode)
+{
+	cfs_tree *t = ctx_tree();
+	const char *buffer = NULL;
+	cfs_node *n = find_parent_node_by_path(t, path, &buffer);
+
+	if (!buffer) return -EINVAL;
+	if (!n) return -ENOENT;
+	if (is_file(n)) return -ENOTDIR;
+
+	metadata_t meta = { 
+		.gid = fuse_get_context()->gid,
+		.uid = fuse_get_context()->uid,
+		.mode = mode,
+		.nlink = 2,
+		.size = 0,
+	};
+
+	return cfs_node_mkdir(n, meta, buffer);
+}
+
+static int cfs_rmdir(const char *path)
+{
+	cfs_tree *t = ctx_tree();
+	cfs_node *node = find_node_by_path(t, path);
+	if (!node) return -ENOENT;
+	return cfs_node_rmdir(node);
+}
+
+
 static struct fuse_operations cfs_ops = {
 	.getattr = cfs_get_attr,
 	.readdir = cfs_readdir,
+	.mkdir = cfs_mkdir,
+	.rmdir = cfs_rmdir,
 };
 
 int main(int argc, char *argv[])
