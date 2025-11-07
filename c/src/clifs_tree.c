@@ -193,7 +193,7 @@ cfs_tree *new_tree(void)
 	cfs_tree *tree = calloc(1, sizeof *tree);
 	if (!tree) return NULL;
 
-	tree->root_node = new_node(meta, CFS_DIR, "");
+	tree->root_node = new_node(meta, CFS_DIR, "\0");
 	return tree;
 }
 
