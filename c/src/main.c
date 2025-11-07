@@ -2,6 +2,7 @@
 #include "clifs_tree.h"
 #include "file_descriptor.h"
 #include "params.h"
+#include <assert.h>
 #include <fuse3/fuse.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,8 +59,33 @@ static int cfs_get_attr(const char *path, struct stat *st, struct fuse_file_info
 	return 0;
 }
 
+static int cfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t off, struct fuse_file_info *fi, enum fuse_readdir_flags frf)
+{
+	(void) fi;
+	(void) off;
+	(void) frf;
+
+	cfs_tree *t = ctx_tree();
+	cfs_node *node = find_node_by_path(t, path);
+	if (!node) return -ENOENT;
+
+	filler(buffer, ".", NULL, 0, 0);
+	filler(buffer, "..", NULL, 0, 0);
+
+	if (is_file(node)) return -ENOTDIR;
+	children cs = node->data.dir_children;
+	for (size_t i = 0; i < cs.len; i ++)
+	{
+		cfs_node *c = cs.items[i];
+		filler(buffer, c->name.data, NULL, 0, 0);
+	}
+
+	return 0;
+}
+
 static struct fuse_operations cfs_ops = {
 	.getattr = cfs_get_attr,
+	.readdir = cfs_readdir,
 };
 
 int main(int argc, char *argv[])
