@@ -1,7 +1,8 @@
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
 #include "helpers.h"
+
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 int cstr_set(cfstr_t *s, const char *new_str) {
     if (!s || !new_str) return -EINVAL;
@@ -13,7 +14,7 @@ int cstr_set(cfstr_t *s, const char *new_str) {
         char *np = (char *)realloc(s->data, need);
         if (!np) return -ENOMEM;
         s->data = np;
-        s->cap  = need;
+        s->cap = need;
     }
 
     // copy including NUL terminator
@@ -42,7 +43,7 @@ int last_dash(const char *path) {
     if (n == 1 && path[0] == '/') return -1;
 
     // Find slash immediately before the leaf (scan backwards)
-    for (size_t i = n; i-- > 0; ) {
+    for (size_t i = n; i-- > 0;) {
         if (path[i] == '/') return (int)i;
     }
     return -1;

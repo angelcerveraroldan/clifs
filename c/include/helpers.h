@@ -2,18 +2,18 @@
 
 // A simple string
 typedef struct cf_str_t {
-	// The number of characters in `data`.
-	size_t len;
-	// The maximum number of characters that `data` can store before needing
-	// reallocation.
-	size_t cap;
-	// A pointer to the characters this string represents.
-	char *data;
+    // The number of characters in `data`.
+    size_t len;
+    // The maximum number of characters that `data` can store before needing
+    // reallocation.
+    size_t cap;
+    // A pointer to the characters this string represents.
+    char *data;
 } cfstr_t;
 
 // Change the the `data` field of `s` to a new string. This will handle any
 // internal re-allocation that is needed.
-int cstr_set(cfstr_t * s, const char * new_str);
+int cstr_set(cfstr_t *s, const char *new_str);
 
 void free_cstr(cfstr_t *);
 

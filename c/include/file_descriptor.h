@@ -5,14 +5,14 @@
 #include <stdlib.h>
 
 typedef struct file_handle {
-  struct cfs_node *node;
-  int flags;
-  int in_use;
+    struct cfs_node *node;
+    int flags;
+    int in_use;
 } file_handle;
 
 typedef struct fd_table {
-  size_t handles_cap;
-  file_handle *handles;
+    size_t handles_cap;
+    file_handle *handles;
 } fd_table;
 
 fd_table new_empty(void);
