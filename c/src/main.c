@@ -65,12 +65,6 @@ static struct fuse_operations cfs_ops = {
 int main(int argc, char *argv[])
 {
 	cfs_state state = { .table = new_empty(), .tree = new_tree() };
-	printf("Ok, lets go:\n");
-	printf("Table hc: %zu", state.table.handles_cap);
-	fflush(stdout);
-	printf("tree: %s",  state.tree->root_node->name.data);
-	fflush(stdout);
-
 	fuse_main(argc, argv, &cfs_ops, &state);
 	return 0;
 }
