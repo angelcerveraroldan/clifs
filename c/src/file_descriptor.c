@@ -1,6 +1,4 @@
 #include "file_descriptor.h"
-#include <stdint.h>
-#include <stdlib.h>
 
 fd_table new_empty(void)
 {
@@ -35,7 +33,7 @@ uint64_t open_node_file(struct fd_table * ft, struct cfs_node *n, int flags)
 	return (uint64_t)id;
 }
 
-file_handle *get(struct fd_table *ft, uint64_t id)
+file_handle *get_by_id(struct fd_table *ft, uint64_t id)
 {
 	if (id >= ft->handles_cap) return NULL;
 	file_handle *fh = &ft->handles[id];
@@ -43,7 +41,7 @@ file_handle *get(struct fd_table *ft, uint64_t id)
 	else return fh;
 }
 
-void close(struct fd_table *ft, uint64_t id)
+void close_by_id(struct fd_table *ft, uint64_t id)
 {
 	if (id >= ft->handles_cap) return;
 	ft->handles[id].flags  = 0;

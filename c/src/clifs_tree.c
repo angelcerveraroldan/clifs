@@ -1,6 +1,7 @@
 #include "clifs_tree.h"
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -77,17 +78,17 @@ void init_node(struct cfs_node *node, metadata_t meta, node_kind_t node_k, const
 	node->parent = NULL;
 
 	if (node_k == CFS_DIR) init_children(&node->data.dir_children);
-	else cstr_set(&node->data.file_content, "");
+	else cstr_set(&node->data.file_content, "\0");
 }
 
 cfs_node *new_node(metadata_t meta, node_kind_t node_k, const char * name)
 {
-	cfs_node *node = malloc(sizeof(cfs_node));
+	cfs_node *node = calloc(1, sizeof *node);
 	init_node(node, meta, node_k, name);
 	return node;
 }
 
-int rename(struct cfs_node *n, const char *new_name)
+int rename_node(struct cfs_node *n, const char *new_name)
 {
 	// Cannot rename root node
 	if (n == NULL || n->parent == NULL) return -EINVAL;
