@@ -1,3 +1,10 @@
+#include "clifs_tree.h"
+#include "file_descriptor.h"
+
+#ifndef FUSE_USE_VERSION
+#define FUSE_USE_VERSION 31
+#endif
+
 #include <asm-generic/errno-base.h>
 #include <assert.h>
 #include <fuse3/fuse.h>
@@ -6,10 +13,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "clifs_tree.h"
-#include "file_descriptor.h"
-#include "params.h"
 
 // Just for the time being ...
 #ifndef S_IFDIR
